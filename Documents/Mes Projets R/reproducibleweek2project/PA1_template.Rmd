@@ -1,0 +1,114 @@
+---
+title: "PA1_template.html"
+author: "Abdoul Kader"
+date: "12/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Loading and preprocessing the data
+### Code
+
+
+```{r}
+activity <- read.csv("activity.csv")
+summary(activity)
+
+```
+
+## What is mean total number of steps taken per day?
+### 1. The total number of steps taken per day
+
+
+```{r}
+activityperdate <- aggregate(data=activity, steps~date, sum, na.rm = TRUE)
+head(activityperdate)
+```
+
+### 2. Histogram  of the total number of steps taken each day
+
+```{r}
+hist(activityperdate$steps, xlab = "Steps")
+```
+
+### 3. Calculate and report the mean and median of the total number of steps taken per day
+
+```{r}
+mean(activityperdate$steps)
+median(activityperdate$steps)
+```
+
+## What is the average daily activity pattern?
+### 1. Make a time series plot (i.e. type = "l"\color{red}{\verb|type = "l"|}type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+
+```{r}
+interval_per_stps <- aggregate(data=activity, steps~interval, mean, na.rm=TRUE)
+with(interval_per_stps, plot(interval_per_stps$interval, interval_per_stps$steps, type = "l", xlab = "interval", ylab = "Steps"))
+```
+
+
+### 2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+```{r}
+interval_per_stps$interval[which.max(interval_per_stps$steps)]
+```
+
+## Imputing missing values
+### 1. Calculate and report the total number of missing values in the dataset 
+
+```{r}
+sum((is.na(activity$steps)))
+```
+
+### 2. Devise a strategy for filling in all of the missing values in the dataset
+We will replace NA’s with the mean for that 5-minute interval.
+(Nous allons remplacer les NA avec la moyenne des intervalles 5-minute.)
+
+### 3. New dataset that is equal to the original dataset but with the missing data filled in
+
+```{r}
+imputed_data <- activity
+for (i in 1:length(imputed_data$steps)) {
+   if (is.na(imputed_data$steps[i])) {
+      imputed_data$steps[i] <- interval_per_stps$steps[interval_per_stps$interval == imputed_data$interval[i]]
+   }
+}
+head(imputed_data)
+```
+
+### 4. histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day
+
+```{r}
+imp_steps_per_day <- aggregate(steps ~ date, imputed_data, sum, na.rm = TRUE)
+sum(is.na(imp_steps_per_day$steps))
+hist(imp_steps_per_day$steps, main = "Total Steps per day", xlab = "Steps")
+
+mean(imp_steps_per_day$steps)
+
+median(imp_steps_per_day$steps)
+```
+
+## Are there differences in activity patterns between weekdays and weekends?
+### 1. New factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+
+```{r}
+imputed_data$date <- as.Date(imputed_data$date)
+imputed_data$wkdy <- "weekday"
+imputed_data$wkdy[weekdays(imputed_data$date) == "samedi" | weekdays(imputed_data$date) == "dimanche"] <- "weekend"
+imputed_data$wkdy <- as.factor(imputed_data$wkdy)
+```
+
+### 2. Plot containing a time series plot
+
+
+```{r}
+imputed_data_interval <- aggregate(steps ~ interval + wkdy, imputed_data, mean, na.rm = TRUE)
+
+library("ggplot2")
+g <- ggplot(imputed_data_interval, aes(interval, steps))
+g + facet_grid(wkdy ~ .) + geom_line() + ggtitle("Average number of steps per 5-min interval")
+
+```
